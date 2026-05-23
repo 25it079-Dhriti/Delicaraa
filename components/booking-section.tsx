@@ -2,9 +2,11 @@
 
 import { motion } from "framer-motion"
 import { useInView } from "framer-motion"
-import { useRef, useState } from "react"
-import { Send, MessageCircle, Calendar, User, Phone, Sparkles, Upload, Heart, Camera, Info } from "lucide-react"
+import { useRef, useState, useEffect } from "react"
+import { Send, MessageCircle, Calendar, User, Phone, Sparkles, Upload, Heart, Camera, Info, Mail, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
+import { useStore } from "@/lib/store"
+import { toast } from "sonner"
 
 const services = [
   "Classic Glam",
@@ -21,21 +23,74 @@ const services = [
 export function BookingSection() {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
+  const { user } = useStore()
+  
   const [formData, setFormData] = useState({
     name: "",
+    email: "",
     phone: "",
     service: "",
     message: "",
   })
+  
   const [handPhoto, setHandPhoto] = useState<string | null>(null)
   const [dreamPhoto, setDreamPhoto] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Auto-fill logged-in customer info
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || user.name || "",
+        email: prev.email || user.email || "",
+        phone: prev.phone || user.phone || "",
+      }))
+    }
+  }, [user])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Create WhatsApp message
-    const message = `✨ *NEW CUSTOM DESIGN ORDER* ✨\n\n*Name:* ${formData.name}\n*WhatsApp:* ${formData.phone}\n*Desired Style:* ${formData.service}\n*Description:* ${formData.message}\n\n${handPhoto ? "✅ _Hand sizing photo attached_" : "❌ _No hand sizing photo_"}\n${dreamPhoto ? "✅ _Dreamy design reference photo attached_" : "❌ _No dream design photo_"}`
-    const whatsappUrl = `https://wa.me/919999999999?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, "_blank")
+    setIsSubmitting(true)
+
+    const payload = {
+      access_key: "67c30f3a-6b75-4daf-a02f-bb31fa8b229b",
+      subject: "New Delicaraa Custom Order Request ✨",
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      nailset: formData.service,
+      notes: formData.message,
+      hand_photo_attached: handPhoto ? "Yes" : "No",
+      dream_inspo_attached: dreamPhoto ? "Yes" : "No",
+      // Include image URL or base64 previews securely
+      hand_photo_preview: handPhoto || "No Hand Image uploaded",
+      dream_photo_preview: dreamPhoto || "No Inspo Image uploaded",
+    }
+
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      setIsSubmitting(false)
+      if (data.success) {
+        setSuccess(true)
+        toast.success("Nail design request sent successfully to Dhriti! 🌸")
+        setFormData({ name: "", email: "", phone: "", service: "", message: "" })
+        setHandPhoto(null)
+        setDreamPhoto(null)
+      } else {
+        toast.error(`Submission failed: ${data.message || "Please try again later"}`)
+      }
+    } catch (err) {
+      setIsSubmitting(false)
+      toast.error("Network error submitting request. Please try again! 🌸")
+      console.error("Web3Forms error:", err)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -45,6 +100,10 @@ export function BookingSection() {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 1500000) {
+        toast.error("Hand photo is too large! Please upload under 1.5MB 🌸")
+        return
+      }
       const reader = new FileReader()
       reader.onloadend = () => {
         setHandPhoto(reader.result as string)
@@ -56,6 +115,10 @@ export function BookingSection() {
   const handleDreamPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 1500000) {
+        toast.error("Design photo is too large! Please upload under 1.5MB 🌸")
+        return
+      }
       const reader = new FileReader()
       reader.onloadend = () => {
         setDreamPhoto(reader.result as string)
@@ -195,188 +258,239 @@ export function BookingSection() {
           >
             <form
               onSubmit={handleSubmit}
-              className="p-8 bg-card rounded-3xl shadow-lg border border-border/50"
+              className="p-8 bg-card rounded-3xl shadow-lg border border-border/50 relative overflow-hidden"
             >
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="text-xl font-serif font-semibold text-foreground">Place Your Order</h3>
-              </div>
-
-              <div className="space-y-5">
-                {/* Name */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Your Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      placeholder="What should we call you?"
-                      className="w-full pl-12 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                </div>
-
-                {/* Phone */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Phone / WhatsApp
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      required
-                      placeholder="Your WhatsApp number"
-                      className="w-full pl-12 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-foreground placeholder:text-muted-foreground"
-                    />
-                  </div>
-                </div>
-
-                {/* Service */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    What Style Do You Want?
-                  </label>
-                  <div className="relative">
-                    <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <select
-                      name="service"
-                      value={formData.service}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-12 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-foreground appearance-none cursor-pointer"
-                    >
-                      <option value="">Select a style</option>
-                      {services.map((service) => (
-                        <option key={service} value={service}>
-                          {service}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Hand Photo Upload */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Upload Hand Photo (with coin)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      id="hand-photo"
-                    />
-                    <label
-                      htmlFor="hand-photo"
-                      className="flex items-center justify-center gap-3 w-full py-4 bg-input rounded-xl border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-all group"
-                    >
-                      {handPhoto ? (
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                            <img src={handPhoto} alt="Hand photo" className="w-full h-full object-cover" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-medium text-foreground">Photo uploaded!</p>
-                            <p className="text-xs text-muted-foreground">Click to change</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <Camera className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                          <span className="text-muted-foreground group-hover:text-primary transition-colors">
-                            Click to upload your hand photo
-                          </span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                    <Info className="w-3 h-3" />
-                    Place a coin next to your nails for size reference
-                  </p>
-                </div>
-
-                {/* Dreamy Design Photo Upload */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Upload Your Dreamy Nail Design Inspo
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleDreamPhotoUpload}
-                      className="hidden"
-                      id="dream-photo"
-                    />
-                    <label
-                      htmlFor="dream-photo"
-                      className="flex items-center justify-center gap-3 w-full py-4 bg-input rounded-xl border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-all group"
-                    >
-                      {dreamPhoto ? (
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                            <img src={dreamPhoto} alt="Dream design" className="w-full h-full object-cover" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-medium text-foreground">Inspo uploaded! 💖</p>
-                            <p className="text-xs text-muted-foreground">Click to change</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                          <span className="text-muted-foreground group-hover:text-primary transition-colors">
-                            Click to upload dream design photo
-                          </span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                    <Heart className="w-3 h-3 text-primary fill-primary" />
-                    Any reference design you want Dhriti to match
-                  </p>
-                </div>
-
-                {/* Message */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Tell Us About Your Dream Nails
-                  </label>
-                  <textarea
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    rows={3}
-                    placeholder="Describe your dream design, share inspo links, or ask questions..."
-                    className="w-full px-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-foreground placeholder:text-muted-foreground resize-none"
-                  />
-                </div>
-
-                {/* Submit */}
-                <button
-                  type="submit"
-                  className="w-full py-4 bg-primary text-primary-foreground font-medium tracking-wide rounded-xl hover:bg-primary/90 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-primary/25"
+              {success ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="py-12 text-center space-y-6"
                 >
-                  <Send className="w-4 h-4" />
-                  Send via WhatsApp
-                </button>
-              </div>
+                  <div className="w-16 h-16 bg-green-500/10 text-green-600 rounded-full flex items-center justify-center mx-auto border border-green-200">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-serif font-bold text-foreground">Order Request Sent! 🌸</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed px-4">
+                      Dhriti has received your dreamy custom nail request via Web3Forms! An email copy was dispatched to you as well.
+                    </p>
+                    <p className="text-xs text-primary font-semibold leading-relaxed">
+                      We will review your uploaded photos and get in touch with you shortly. ✨
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSuccess(false)}
+                    className="px-6 py-2.5 bg-primary/10 text-primary font-semibold text-xs rounded-full hover:bg-primary/20 transition-all"
+                  >
+                    Send Another Request
+                  </button>
+                </motion.div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-serif font-semibold text-foreground">Place Custom Order</h3>
+                  </div>
+
+                  <div className="space-y-5">
+                    {/* Name */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Your Name
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          placeholder="What should we call you?"
+                          className="w-full pl-11 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-sm text-foreground placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Email Address
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          required
+                          placeholder="Your email address"
+                          className="w-full pl-11 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-sm text-foreground placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        WhatsApp Mobile Number
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          required
+                          placeholder="Your WhatsApp mobile number"
+                          className="w-full pl-11 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-sm text-foreground placeholder:text-muted-foreground"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Service / Style Select */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Desired Nail Set Style
+                      </label>
+                      <div className="relative">
+                        <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
+                        <select
+                          name="service"
+                          value={formData.service}
+                          onChange={handleChange}
+                          required
+                          className="w-full pl-11 pr-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-sm text-foreground appearance-none cursor-pointer"
+                        >
+                          <option value="">Select a style set</option>
+                          {services.map((service) => (
+                            <option key={service} value={service}>
+                              {service}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Hand Photo Upload */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Upload Sizing Photo (Optional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                          id="hand-photo"
+                        />
+                        <label
+                          htmlFor="hand-photo"
+                          className="flex items-center justify-center gap-3 w-full py-3.5 bg-input rounded-xl border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-all group"
+                        >
+                          {handPhoto ? (
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border">
+                                <img src={handPhoto} alt="Hand sizing" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-xs font-semibold text-foreground">Sizing photo uploaded! 🌸</p>
+                                <p className="text-[10px] text-muted-foreground">Click to change photo</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <Camera className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
+                                Add full hand with ₹5 coin reference
+                              </span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Dream Inspo Photo Upload */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Upload Reference Inspo Photo (Optional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleDreamPhotoUpload}
+                          className="hidden"
+                          id="dream-photo"
+                        />
+                        <label
+                          htmlFor="dream-photo"
+                          className="flex items-center justify-center gap-3 w-full py-3.5 bg-input rounded-xl border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-all group"
+                        >
+                          {dreamPhoto ? (
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-10 h-10 rounded-lg overflow-hidden border">
+                                <img src={dreamPhoto} alt="Dream design" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-xs font-semibold text-foreground">Reference inspo uploaded! 💖</p>
+                                <p className="text-[10px] text-muted-foreground">Click to change photo</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-4.5 h-4.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
+                                Upload reference design screenshot
+                              </span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Notes Message */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5">
+                        Nail length, custom notes or design description
+                      </label>
+                      <textarea
+                        name="message"
+                        value={formData.message}
+                        onChange={handleChange}
+                        rows={3}
+                        placeholder="Describe your design specifications (length, modifications) or custom sizing kit requests here..."
+                        className="w-full px-4 py-3 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-xs text-foreground placeholder:text-muted-foreground resize-none font-sans"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-4 bg-primary text-primary-foreground font-semibold tracking-wide rounded-xl shadow-lg shadow-primary/25 hover:bg-primary/95 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          Submitting Custom Request...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Place Order ✨
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
           </motion.div>
         </div>
