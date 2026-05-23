@@ -16,7 +16,9 @@ export function CartDrawer() {
     cartTotal, 
     showCart, 
     setShowCart,
-    user
+    user,
+    isLoggedIn,
+    setShowLoginModal
   } = useStore()
 
   // Checkout flow state: "cart" | "address" | "invoice" | "payment" | "success"
@@ -771,7 +773,14 @@ export function CartDrawer() {
               </div>
 
               <button
-                onClick={() => setStep("address")}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setShowLoginModal(true)
+                    toast.error("Please login or create an account first to proceed to checkout! ✨")
+                  } else {
+                    setStep("address")
+                  }
+                }}
                 className="w-full py-4 bg-primary text-primary-foreground font-semibold tracking-wide rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/95 hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2"
               >
                 Proceed to Checkout

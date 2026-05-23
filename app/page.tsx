@@ -9,7 +9,7 @@ import { GallerySection } from "@/components/gallery-section"
 import { ServicesSection } from "@/components/services-section"
 import { InstagramSection } from "@/components/instagram-section"
 import { BookingSection } from "@/components/booking-section"
-import { ReviewSection } from "@/components/review-section"
+import { ReviewsSection } from "@/components/reviews-section"
 import { Footer } from "@/components/footer"
 
 // Modals and Drawers
@@ -45,7 +45,7 @@ export default function Home() {
       <ServicesSection />
       <InstagramSection />
       <BookingSection />
-      <ReviewSection />
+      <ReviewsSection />
       <Footer />
 
       {/* Global Modals & Side Drawers */}

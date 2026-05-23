@@ -6,6 +6,7 @@ import { useRef, useState, useEffect } from "react"
 import { Star, Heart, Send, Camera, Sparkles, MessageCircle, User, Award } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
+import { useStore } from "@/lib/store"
 
 interface Review {
   id: string
@@ -49,6 +50,8 @@ export function ReviewSection() {
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [reviews, setReviews] = useState<Review[]>([])
   
+  const { user } = useStore()
+
   // Form states
   const [showForm, setShowForm] = useState(false)
   const [rating, setRating] = useState(5)
@@ -57,6 +60,13 @@ export function ReviewSection() {
   const [design, setDesign] = useState("")
   const [comment, setComment] = useState("")
   const [photoBase64, setPhotoBase64] = useState<string | undefined>(undefined)
+
+  // Auto-fill logged in user's name
+  useEffect(() => {
+    if (user && !name) {
+      setName(user.name || "")
+    }
+  }, [user])
 
   // Load reviews from shared server DB + fallback on mount
   useEffect(() => {
