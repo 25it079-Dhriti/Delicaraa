@@ -58,25 +58,39 @@ export function ReviewSection() {
   const [comment, setComment] = useState("")
   const [photoBase64, setPhotoBase64] = useState<string | undefined>(undefined)
 
-  // Load reviews from localStorage + defaults on mount
+  // Load reviews from shared server DB + fallback on mount
   useEffect(() => {
-    const saved = localStorage.getItem("delicaraa_customer_reviews")
-    if (saved) {
-      try {
-        setReviews(JSON.parse(saved))
-      } catch (e) {
-        setReviews(DEFAULT_REVIEWS)
-      }
-    } else {
-      setReviews(DEFAULT_REVIEWS)
-      localStorage.setItem("delicaraa_customer_reviews", JSON.stringify(DEFAULT_REVIEWS))
-    }
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.reviews && data.reviews.length > 0) {
+          setReviews(data.reviews)
+        } else {
+          // Fallback to local storage
+          const saved = localStorage.getItem("delicaraa_customer_reviews")
+          if (saved) {
+            setReviews(JSON.parse(saved))
+          } else {
+            setReviews(DEFAULT_REVIEWS)
+            localStorage.setItem("delicaraa_customer_reviews", JSON.stringify(DEFAULT_REVIEWS))
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("Server reviews fetch failed, loading fallback:", err)
+        const saved = localStorage.getItem("delicaraa_customer_reviews")
+        if (saved) {
+          setReviews(JSON.parse(saved))
+        } else {
+          setReviews(DEFAULT_REVIEWS)
+        }
+      })
   }, [])
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Basic image size safety: limit to ~1.5MB for localStorage storage
+      // Basic image size safety: limit to ~1.5MB for storage stability
       if (file.size > 1500000) {
         toast.error("Photo is too large! Please select an image under 1.5MB 🌸")
         return
@@ -89,41 +103,52 @@ export function ReviewSection() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !design.trim() || !comment.trim()) {
       toast.error("Please fill out all required fields! 🌸")
       return
     }
 
-    const newReview: Review = {
-      id: `rev-${Date.now()}`,
+    const newReviewPayload = {
       name: name.trim(),
       rating,
       comment: comment.trim(),
       design: design.trim(),
       image: photoBase64,
-      date: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
     }
 
-    const updated = [newReview, ...reviews]
-    setReviews(updated)
-    localStorage.setItem("delicaraa_customer_reviews", JSON.stringify(updated))
-
-    // Optional WhatsApp share link
-    const waMessage = `🌸 *New Review Submitted for Delicaraa!* 🌸\n\nName: ${newReview.name}\nDesign: ${newReview.design}\nRating: ${"★".repeat(newReview.rating)}${"☆".repeat(5 - newReview.rating)}\nReview: "${newReview.comment}"\n\n${newReview.image ? "(Custom nail photo attached in browser)" : "(No photo attached)"}`
-    const whatsappUrl = `https://wa.me/919999999999?text=${encodeURIComponent(waMessage)}`
-
-    toast.success("Review posted successfully! 💖", {
-      action: {
-        label: "Share on WhatsApp",
-        onClick: () => window.open(whatsappUrl, "_blank"),
-      },
-    })
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newReviewPayload),
+      })
+      const data = await res.json()
+      if (data.success && data.review) {
+        const updated = [data.review, ...reviews]
+        setReviews(updated)
+        localStorage.setItem("delicaraa_customer_reviews", JSON.stringify(updated))
+        toast.success("Review published! Everyone can see it now, and Dhriti was notified by email! 💖")
+      } else {
+        toast.error(`Failed to publish: ${data.error || "Please try again"}`)
+      }
+    } catch (err) {
+      toast.error("Network error submitting review. Storing locally instead! 🌸")
+      // Local fallback
+      const localReview: Review = {
+        id: `rev-${Date.now()}`,
+        ...newReviewPayload,
+        date: new Date().toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+      }
+      const updated = [localReview, ...reviews]
+      setReviews(updated)
+      localStorage.setItem("delicaraa_customer_reviews", JSON.stringify(updated))
+    }
 
     // Reset Form
     setName("")
