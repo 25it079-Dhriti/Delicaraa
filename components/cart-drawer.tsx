@@ -19,8 +19,9 @@ export function CartDrawer() {
     user
   } = useStore()
 
-  // Checkout flow state: "cart" | "address" | "invoice" | "payment"
-  const [step, setStep] = useState<"cart" | "address" | "invoice" | "payment">("cart")
+  // Checkout flow state: "cart" | "address" | "invoice" | "payment" | "success"
+  const [step, setStep] = useState<"cart" | "address" | "invoice" | "payment" | "success">("cart")
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false)
   
   const [addressData, setAddressData] = useState({
     name: "",
@@ -86,6 +87,7 @@ export function CartDrawer() {
       setIsCouponApplied(false)
       setCouponCode("")
       setCouponError(false)
+      setIsPlacingOrder(false)
     }
   }, [showCart])
 
@@ -116,107 +118,60 @@ export function CartDrawer() {
     }
   }
 
-  const handleWhatsAppCheckout = () => {
+  const handlePlaceOrder = async () => {
     if (cart.length === 0) return
+    setIsPlacingOrder(true)
 
     // Finalized bill calculation with 100 Rs shipping charge
     const deliveryCharges = 100
     const discount = isCouponApplied ? Math.round(cartTotal * 0.1) : 0
     const finalTotal = cartTotal + deliveryCharges - discount
 
-    // Call nodemailer email service
-    fetch("/api/order", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cart,
-        addressData,
-        sizingData: {
-          shape: sizingSelection.shape,
-          standardSize: sizingSelection.standardSize,
-          leftThumb: sizingSelection.leftSizes[0],
-          leftIndex: sizingSelection.leftSizes[1],
-          leftMiddle: sizingSelection.leftSizes[2],
-          leftRing: sizingSelection.leftSizes[3],
-          leftPinky: sizingSelection.leftSizes[4],
-          rightThumb: sizingSelection.rightSizes[0],
-          rightIndex: sizingSelection.rightSizes[1],
-          rightMiddle: sizingSelection.rightSizes[2],
-          rightRing: sizingSelection.rightSizes[3],
-          rightPinky: sizingSelection.rightSizes[4],
-        },
-        couponApplied: isCouponApplied,
-        discountAmount: discount,
-        deliveryCharges,
-        subtotal: cartTotal,
-        finalTotal,
-        paymentMethod,
-        customerEmail: user?.email || "",
-      }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          toast.success("Order logged! Receipt sent to your email 🌸")
-        } else {
-          console.warn("Order email log failed:", data.error)
-        }
+    try {
+      // Call nodemailer email service
+      const res = await fetch("/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cart,
+          addressData,
+          sizingData: {
+            shape: sizingSelection.shape,
+            standardSize: sizingSelection.standardSize,
+            leftThumb: sizingSelection.leftSizes[0],
+            leftIndex: sizingSelection.leftSizes[1],
+            leftMiddle: sizingSelection.leftSizes[2],
+            leftRing: sizingSelection.leftSizes[3],
+            leftPinky: sizingSelection.leftSizes[4],
+            rightThumb: sizingSelection.rightSizes[0],
+            rightIndex: sizingSelection.rightSizes[1],
+            rightMiddle: sizingSelection.rightSizes[2],
+            rightRing: sizingSelection.rightSizes[3],
+            rightPinky: sizingSelection.rightSizes[4],
+          },
+          couponApplied: isCouponApplied,
+          discountAmount: discount,
+          deliveryCharges,
+          subtotal: cartTotal,
+          finalTotal,
+          paymentMethod,
+          customerEmail: user?.email || "",
+        }),
       })
-      .catch((err) => console.error("Email API network error:", err))
-
-    const orderItemsText = cart
-      .map(
-        (item) =>
-          `🌸 *${item.name}* (${item.category})\n   Qty: ${item.quantity} x ₹${item.price} = *₹${item.price * item.quantity}*`
-      )
-      .join("\n\n")
-
-    let userDetails = `\n\n👤 *Customer Details:*`
-    userDetails += `\n- Name: ${addressData.name}`
-    userDetails += `\n- WhatsApp: ${addressData.phone}`
-    if (user?.instagram) {
-      userDetails += `\n- Instagram: @${user.instagram.replace(/^@/, "")}`
+      const data = await res.json()
+      setIsPlacingOrder(false)
+      if (data.success) {
+        toast.success("Order Placed Successfully! 🌸")
+        setStep("success")
+        clearCart()
+      } else {
+        toast.error(`Order failed: ${data.error || "Please try again later"}`)
+      }
+    } catch (err) {
+      setIsPlacingOrder(false)
+      toast.error("Network error placing order. Please try again! 🌸")
+      console.error("Order error:", err)
     }
-
-    userDetails += `\n\n📏 *Sizing Profile:*`
-    userDetails += `\n- Shape: ${sizingSelection.shape}`
-    userDetails += `\n- Size: ${sizingSelection.standardSize}`
-    if (sizingSelection.standardSize === "Custom") {
-      userDetails += `\n- Left Hand (mm): Th:${sizingSelection.leftSizes[0]}, In:${sizingSelection.leftSizes[1]}, Mi:${sizingSelection.leftSizes[2]}, Ri:${sizingSelection.leftSizes[3]}, Pi:${sizingSelection.leftSizes[4]}`
-      userDetails += `\n- Right Hand (mm): Th:${sizingSelection.rightSizes[0]}, In:${sizingSelection.rightSizes[1]}, Mi:${sizingSelection.rightSizes[2]}, Ri:${sizingSelection.rightSizes[3]}, Pi:${sizingSelection.rightSizes[4]}`
-    }
-
-    userDetails += `\n\n📍 *Shipping Address:*`
-    userDetails += `\n- Address: ${addressData.address}`
-    userDetails += `\n- City: ${addressData.city}, State: ${addressData.state}, Pincode: ${addressData.pincode}`
-
-    userDetails += `\n\n💳 *Payment & Invoice:*`
-    userDetails += `\n- Subtotal: ₹${cartTotal}`
-    userDetails += `\n- Shipping delivery fee: ₹${deliveryCharges}`
-    if (isCouponApplied) {
-      userDetails += `\n- Promo Applied: DELI011 (-10% OFF whole order)`
-      userDetails += `\n- Discount Amount: -₹${discount}`
-    }
-    userDetails += `\n- Final Payable Sum: *₹${finalTotal}*`
-    userDetails += `\n- Selected Method: *${paymentMethod}*`
-    if (paymentMethod === "UPI") {
-      userDetails += `\n   (_Instructions: pay directly to delicaraa@upi_)`
-    }
-
-    if (user?.dreamDesign) {
-      userDetails += `\n\n🎨 _Dreamy design reference photo attached in profile drawer!_`
-    }
-
-    const fullMessage = `✨ *FINALIZED ORDER FROM DELICARAA* ✨\n\nHello Dhriti! I have completed checkout details on the website. I would like to place my order:\n\n${orderItemsText}${userDetails}\n\nThank you! Please let me know how to proceed with payment and production. 💖`
-
-    const encodedMessage = encodeURIComponent(fullMessage)
-    // WhatsApp number for Dhriti's nails business - standard Indian code 91
-    const phoneNumber = "919999999999" // Editable placeholder 
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
-    
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer")
-    clearCart()
-    setShowCart(false)
   }
 
   // Invoice calculations with 100 Rs shipping charge
@@ -725,16 +680,75 @@ export function CartDrawer() {
                 <div className="p-4 bg-primary/10 border border-primary/20 rounded-2xl text-xs text-foreground flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <span>
-                    Confirming this order compiles the address, invoice bill, and payment method details into a checkout message to Dhriti on WhatsApp.
+                    Confirming this order submits your shipping details, sizing profile, and invoice directly to Dhriti's email (delicaraa.work@gmail.com) for custom crafting.
                   </span>
                 </div>
 
                 <button
-                  onClick={handleWhatsAppCheckout}
-                  className="w-full py-4 bg-primary text-primary-foreground font-semibold tracking-wide rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/95 hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2"
+                  onClick={handlePlaceOrder}
+                  disabled={isPlacingOrder}
+                  className="w-full py-4 bg-primary text-primary-foreground font-semibold tracking-wide rounded-xl shadow-lg shadow-primary/20 hover:bg-primary/95 hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-4 h-4 fill-current" />
-                  Confirm & Order via WhatsApp
+                  {isPlacingOrder ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      Placing Order...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Confirm & Place Order
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* STEP 5: ORDER SUCCESS SCREEN */}
+            {step === "success" && (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-6 pt-12">
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", duration: 0.6 }}
+                  className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-green-600 mx-auto border-2 border-green-200 shadow-sm"
+                >
+                  <CheckCircle2 className="w-10 h-10" />
+                </motion.div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-serif font-semibold text-foreground">Order Placed! 🎉</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Thank you for your order, <strong>{addressData.name}</strong>! 🌸
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    We have successfully received your order. An itemized invoice has been dispatched to your email address: <strong>{user?.email || "your email"}</strong>.
+                  </p>
+                  <p className="text-xs text-primary font-semibold leading-relaxed">
+                    Dhriti will connect with you on WhatsApp at <strong>{addressData.phone}</strong> shortly to coordinate your hand-painted nails custom sizing kit!
+                  </p>
+                </div>
+
+                <div className="w-full p-4 bg-muted/30 border border-border/50 rounded-2xl text-left space-y-2 text-xs">
+                  <span className="font-bold text-foreground block">📋 Order Recap:</span>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Selected Payment:</span>
+                    <span className="font-semibold text-foreground">{paymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Total Amount Paid:</span>
+                    <span className="font-semibold text-primary">₹{finalPayableTotal}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setShowCart(false)
+                    setStep("cart")
+                  }}
+                  className="w-full py-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/95 transition-all shadow-md shadow-primary/20"
+                >
+                  Continue Shopping
                 </button>
               </div>
             )}
