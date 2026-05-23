@@ -1,9 +1,10 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ShoppingBag, Trash2, Plus, Minus, Send, AlertCircle, ArrowLeft, CheckCircle2, CreditCard, Landmark, Truck } from "lucide-react"
+import { X, ShoppingBag, Trash2, Plus, Minus, Send, AlertCircle, ArrowLeft, CheckCircle2, CreditCard, Landmark, Truck, Gift } from "lucide-react"
 import { useStore } from "@/lib/store"
 import { useState, useEffect } from "react"
+import { toast } from "sonner"
 
 export function CartDrawer() {
   const { 
@@ -30,12 +31,20 @@ export function CartDrawer() {
     pincode: "",
   })
 
+  // Sizing and shape state (if not filled in profile, asks here)
+  const [sizingSelection, setSizingSelection] = useState({
+    shape: "Almond",
+    standardSize: "S",
+    leftSizes: ["15", "12", "13", "11", "9"],
+    rightSizes: ["15", "12", "13", "11", "9"],
+  })
+
   const [couponCode, setCouponCode] = useState("")
   const [isCouponApplied, setIsCouponApplied] = useState(false)
   const [couponError, setCouponError] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<"UPI" | "COD">("UPI")
 
-  // Auto-fill address details if the user has a profile saved
+  // Auto-fill details if the user has a profile saved
   useEffect(() => {
     if (user && showCart) {
       setAddressData({
@@ -46,6 +55,27 @@ export function CartDrawer() {
         state: user.state || "",
         pincode: user.pincode || "",
       })
+
+      if (user.sizing) {
+        setSizingSelection({
+          shape: user.sizing.shape || "Almond",
+          standardSize: user.sizing.standardSize || "S",
+          leftSizes: [
+            user.sizing.leftThumb || "15",
+            user.sizing.leftIndex || "12",
+            user.sizing.leftMiddle || "13",
+            user.sizing.leftRing || "11",
+            user.sizing.leftPinky || "9",
+          ],
+          rightSizes: [
+            user.sizing.rightThumb || "15",
+            user.sizing.rightIndex || "12",
+            user.sizing.rightMiddle || "13",
+            user.sizing.rightRing || "11",
+            user.sizing.rightPinky || "9",
+          ],
+        })
+      }
     }
   }, [user, showCart])
 
@@ -63,6 +93,19 @@ export function CartDrawer() {
     setAddressData({ ...addressData, [e.target.name]: e.target.value })
   }
 
+  const handleSizingChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSizingSelection({ ...sizingSelection, [e.target.name]: e.target.value })
+  }
+
+  const handleFingerSizeChange = (hand: "left" | "right", index: number, value: string) => {
+    const targetArray = hand === "left" ? [...sizingSelection.leftSizes] : [...sizingSelection.rightSizes]
+    targetArray[index] = value
+    setSizingSelection({
+      ...sizingSelection,
+      [hand === "left" ? "leftSizes" : "rightSizes"]: targetArray,
+    })
+  }
+
   const handleApplyCoupon = () => {
     if (couponCode.trim().toUpperCase() === "DELI011") {
       setIsCouponApplied(true)
@@ -76,9 +119,50 @@ export function CartDrawer() {
   const handleWhatsAppCheckout = () => {
     if (cart.length === 0) return
 
-    // Finalized bill calculation
+    // Finalized bill calculation with 100 Rs shipping charge
+    const deliveryCharges = 100
     const discount = isCouponApplied ? Math.round(cartTotal * 0.1) : 0
-    const finalTotal = cartTotal - discount
+    const finalTotal = cartTotal + deliveryCharges - discount
+
+    // Call nodemailer email service
+    fetch("/api/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cart,
+        addressData,
+        sizingData: {
+          shape: sizingSelection.shape,
+          standardSize: sizingSelection.standardSize,
+          leftThumb: sizingSelection.leftSizes[0],
+          leftIndex: sizingSelection.leftSizes[1],
+          leftMiddle: sizingSelection.leftSizes[2],
+          leftRing: sizingSelection.leftSizes[3],
+          leftPinky: sizingSelection.leftSizes[4],
+          rightThumb: sizingSelection.rightSizes[0],
+          rightIndex: sizingSelection.rightSizes[1],
+          rightMiddle: sizingSelection.rightSizes[2],
+          rightRing: sizingSelection.rightSizes[3],
+          rightPinky: sizingSelection.rightSizes[4],
+        },
+        couponApplied: isCouponApplied,
+        discountAmount: discount,
+        deliveryCharges,
+        subtotal: cartTotal,
+        finalTotal,
+        paymentMethod,
+        customerEmail: user?.email || "",
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          toast.success("Order logged! Receipt sent to your email 🌸")
+        } else {
+          console.warn("Order email log failed:", data.error)
+        }
+      })
+      .catch((err) => console.error("Email API network error:", err))
 
     const orderItemsText = cart
       .map(
@@ -94,14 +178,12 @@ export function CartDrawer() {
       userDetails += `\n- Instagram: @${user.instagram.replace(/^@/, "")}`
     }
 
-    if (user?.sizing) {
-      userDetails += `\n\n📏 *Sizing Profile:*`
-      userDetails += `\n- Shape: ${user.sizing.shape || "Almond"}`
-      userDetails += `\n- Size: ${user.sizing.standardSize || "S"}`
-      if (user.sizing.standardSize === "Custom") {
-        userDetails += `\n- Left Hand (mm): Th:${user.sizing.leftThumb || "15"}, In:${user.sizing.leftIndex || "12"}, Mi:${user.sizing.leftMiddle || "13"}, Ri:${user.sizing.leftRing || "11"}, Pi:${user.sizing.leftPinky || "9"}`
-        userDetails += `\n- Right Hand (mm): Th:${user.sizing.rightThumb || "15"}, In:${user.sizing.rightIndex || "12"}, Mi:${user.sizing.rightMiddle || "13"}, Ri:${user.sizing.rightRing || "11"}, Pi:${user.sizing.rightPinky || "9"}`
-      }
+    userDetails += `\n\n📏 *Sizing Profile:*`
+    userDetails += `\n- Shape: ${sizingSelection.shape}`
+    userDetails += `\n- Size: ${sizingSelection.standardSize}`
+    if (sizingSelection.standardSize === "Custom") {
+      userDetails += `\n- Left Hand (mm): Th:${sizingSelection.leftSizes[0]}, In:${sizingSelection.leftSizes[1]}, Mi:${sizingSelection.leftSizes[2]}, Ri:${sizingSelection.leftSizes[3]}, Pi:${sizingSelection.leftSizes[4]}`
+      userDetails += `\n- Right Hand (mm): Th:${sizingSelection.rightSizes[0]}, In:${sizingSelection.rightSizes[1]}, Mi:${sizingSelection.rightSizes[2]}, Ri:${sizingSelection.rightSizes[3]}, Pi:${sizingSelection.rightSizes[4]}`
     }
 
     userDetails += `\n\n📍 *Shipping Address:*`
@@ -110,8 +192,9 @@ export function CartDrawer() {
 
     userDetails += `\n\n💳 *Payment & Invoice:*`
     userDetails += `\n- Subtotal: ₹${cartTotal}`
+    userDetails += `\n- Shipping delivery fee: ₹${deliveryCharges}`
     if (isCouponApplied) {
-      userDetails += `\n- Promo Applied: DELI011 (-10% OFF)`
+      userDetails += `\n- Promo Applied: DELI011 (-10% OFF whole order)`
       userDetails += `\n- Discount Amount: -₹${discount}`
     }
     userDetails += `\n- Final Payable Sum: *₹${finalTotal}*`
@@ -136,9 +219,10 @@ export function CartDrawer() {
     setShowCart(false)
   }
 
-  // Invoice calculations
+  // Invoice calculations with 100 Rs shipping charge
+  const deliveryCharges = 100
   const discountAmount = isCouponApplied ? Math.round(cartTotal * 0.1) : 0
-  const finalPayableTotal = cartTotal - discountAmount
+  const finalPayableTotal = cartTotal + deliveryCharges - discountAmount
 
   if (!showCart) return null
 
@@ -294,10 +378,14 @@ export function CartDrawer() {
               </>
             )}
 
-            {/* STEP 2: SHIPPING ADDRESS FORM */}
+            {/* STEP 2: SHIPPING ADDRESS & SIZING FORM */}
             {step === "address" && (
               <form onSubmit={(e) => { e.preventDefault(); setStep("invoice"); }} className="space-y-4 pt-2">
                 <div className="space-y-4 p-4 bg-muted/30 border rounded-2xl">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block border-b border-border/40 pb-2">
+                    Shipping Details
+                  </span>
+                  
                   <div>
                     <label className="block text-xs font-semibold text-muted-foreground mb-1">Recipient Name</label>
                     <input
@@ -377,6 +465,86 @@ export function CartDrawer() {
                   </div>
                 </div>
 
+                {/* Sizing & Shape Details (always collected or checked) */}
+                <div className="space-y-4 p-4 bg-muted/30 border rounded-2xl">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block border-b border-border/40 pb-2">
+                    📏 Press-on Nail Sizing & Shape
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Nail Shape</label>
+                      <select
+                        name="shape"
+                        value={sizingSelection.shape}
+                        onChange={handleSizingChange}
+                        className="w-full px-3 py-2.5 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-sm text-foreground"
+                      >
+                        <option value="Almond">Almond 🌸</option>
+                        <option value="Coffin">Coffin 💅</option>
+                        <option value="Square">Square ✨</option>
+                        <option value="Oval">Oval 🎀</option>
+                        <option value="Stiletto">Stiletto ⚡</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1">Nail Size</label>
+                      <select
+                        name="standardSize"
+                        value={sizingSelection.standardSize}
+                        onChange={handleSizingChange}
+                        className="w-full px-3 py-2.5 bg-input rounded-xl border border-border/50 focus:border-primary outline-none transition-all text-sm text-foreground"
+                      >
+                        <option value="S">Small (S)</option>
+                        <option value="M">Medium (M)</option>
+                        <option value="L">Large (L)</option>
+                        <option value="XS">Extra Small (XS)</option>
+                        <option value="Custom">Custom Measurements</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {sizingSelection.standardSize === "Custom" && (
+                    <div className="space-y-3 pt-2 border-t border-border/30">
+                      <p className="text-[11px] text-muted-foreground">Please specify custom sizes in millimeters (mm) for thumbs to pinkies:</p>
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="space-y-2">
+                          <span className="font-semibold text-[10px] text-primary">Left Hand (mm)</span>
+                          <div className="grid grid-cols-5 gap-1">
+                            {['Th', 'In', 'Mi', 'Ri', 'Pi'].map((finger, i) => (
+                              <input
+                                key={`left-${i}`}
+                                type="text"
+                                placeholder={finger}
+                                value={sizingSelection.leftSizes[i]}
+                                onChange={(e) => handleFingerSizeChange('left', i, e.target.value)}
+                                className="w-full p-1 bg-input border rounded text-center text-[10px] text-foreground"
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="font-semibold text-[10px] text-primary">Right Hand (mm)</span>
+                          <div className="grid grid-cols-5 gap-1">
+                            {['Th', 'In', 'Mi', 'Ri', 'Pi'].map((finger, i) => (
+                              <input
+                                key={`right-${i}`}
+                                type="text"
+                                placeholder={finger}
+                                value={sizingSelection.rightSizes[i]}
+                                onChange={(e) => handleFingerSizeChange('right', i, e.target.value)}
+                                className="w-full p-1 bg-input border rounded text-center text-[10px] text-foreground"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <button 
                   type="submit" 
                   className="w-full py-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/95 transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-1.5"
@@ -397,7 +565,7 @@ export function CartDrawer() {
                   
                   {isCouponApplied ? (
                     <div className="p-2 bg-pink-500/10 text-pink-600 rounded-xl text-xs font-semibold flex items-center justify-between border border-pink-500/20">
-                      <span>DELI011 Applied! (10% OFF flat) 🎉</span>
+                      <span>DELI011 Applied! (10% OFF whole order) 🎉</span>
                       <button 
                         onClick={() => setIsCouponApplied(false)} 
                         className="text-pink-700 underline text-[10px]"
@@ -454,22 +622,22 @@ export function CartDrawer() {
                       <span>₹{cartTotal}</span>
                     </div>
 
-                    {isCouponApplied && (
-                      <div className="flex justify-between text-pink-500 font-semibold">
-                        <span>DELI011 Discount (10%)</span>
-                        <span>-₹{discountAmount}</span>
-                      </div>
-                    )}
-
                     <div className="flex justify-between text-muted-foreground">
                       <span>Nail Sizing & Prep Kit</span>
                       <span className="text-primary font-semibold">FREE 🌸</span>
                     </div>
 
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Shipping Delivery</span>
-                      <span className="text-primary font-semibold">FREE 🌸</span>
+                      <span>Shipping Delivery Fee</span>
+                      <span className="text-foreground font-semibold">₹100</span>
                     </div>
+
+                    {isCouponApplied && (
+                      <div className="flex justify-between text-pink-500 font-semibold">
+                        <span>DELI011 Promo (10% OFF)</span>
+                        <span>-₹{discountAmount}</span>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-center text-sm font-bold border-t border-border/40 pt-3 text-foreground">
                       <span className="font-serif">Total Bill Payable</span>
