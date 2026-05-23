@@ -186,19 +186,6 @@ export function LoginModal() {
                   </button>
                 </div>
 
-                {/* Email me with news and offers Checkbox */}
-                <div className="flex items-center gap-3 pt-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    id="news-offers"
-                    defaultChecked
-                    className="w-4.5 h-4.5 rounded border-border text-primary focus:ring-primary/20 accent-primary"
-                  />
-                  <label htmlFor="news-offers" className="cursor-pointer text-muted-foreground text-xs select-none">
-                    Email me with news and offers
-                  </label>
-                </div>
-
                 {!isSignUp && (
                   <div className="text-right">
                     <button type="button" className="text-xs text-primary hover:underline">
