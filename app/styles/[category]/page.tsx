@@ -272,10 +272,6 @@ export default function StylePage() {
                         </button>
                       </div>
                     </div>
-
-                    <span className="absolute top-4 left-4 px-3 py-1 bg-white/95 text-foreground text-xs font-semibold tracking-wider rounded-full shadow-sm">
-                      {item.category}
-                    </span>
                   </div>
 
                   {/* Info details */}

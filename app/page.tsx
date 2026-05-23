@@ -18,19 +18,20 @@ import { LoginModal } from "@/components/login-modal"
 import { CartDrawer } from "@/components/cart-drawer"
 import { WishlistDrawer } from "@/components/wishlist-drawer"
 import { ProfileDrawer } from "@/components/profile-drawer"
+import { PromoModal } from "@/components/promo-modal"
 
 export default function Home() {
   const { isLoggedIn, setShowLoginModal } = useStore()
 
   useEffect(() => {
-    // Automatically trigger the login modal after 2.5 seconds on first load if user is a guest
+    // Automatically trigger the login modal after 6.5 seconds on first load if user is a guest
     const hasPrompted = sessionStorage.getItem("delicaraa_login_prompted")
     
     if (!isLoggedIn && !hasPrompted) {
       const timer = setTimeout(() => {
         setShowLoginModal(true)
         sessionStorage.setItem("delicaraa_login_prompted", "true")
-      }, 2500)
+      }, 6500)
       
       return () => clearTimeout(timer)
     }
@@ -54,6 +55,7 @@ export default function Home() {
       <CartDrawer />
       <WishlistDrawer />
       <ProfileDrawer />
+      <PromoModal />
     </main>
   )
 }

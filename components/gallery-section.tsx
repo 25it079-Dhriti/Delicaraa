@@ -12,7 +12,7 @@ export const galleryItems: NailDesign[] = [
     src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-05-20%20at%209.19.59%20PM%20%282%29-iI7UYpSt5FDqpE1DVReyNrOMsugHP5.jpeg",
     name: "Midnight Glamour",
     description: "Mauve & pink with silver chrome, crystals, and 3D embellishments",
-    price: 899,
+    price: 729,
     category: "Luxury Art",
   },
   {
@@ -28,7 +28,7 @@ export const galleryItems: NailDesign[] = [
     src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-05-20%20at%209.19.59%20PM-L8grJmHMcXt5Mx7ZZGI2wfAQJTgEGC.jpeg",
     name: "Koi Pond Dreams",
     description: "Hand-painted koi fish, lily pads, and 3D butterfly art",
-    price: 1299,
+    price: 999,
     category: "3D Embellishments",
   },
   {
@@ -44,8 +44,8 @@ export const galleryItems: NailDesign[] = [
     src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-05-20%20at%209.19.58%20PM-FY7ahxfclq4vgWjfPtnjPlgxpGI4f9.jpeg",
     name: "Velvet Rose",
     description: "Dusty pink velvet finish with gold 3D roses and leaves",
-    price: 999,
-    category: "Luxury Art",
+    price: 679,
+    category: "Themed Sets",
   },
   {
     id: "starry-giraffe",
@@ -60,7 +60,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/retro-pastel.jpg",
     name: "Retro Pastel Flowers",
     description: "Pastel retro nail art featuring hand-painted retro flowers, blue/white stripes, red polka dots, and cute stars",
-    price: 699,
+    price: 649,
     category: "Floral Dreams",
   },
   {
@@ -68,7 +68,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/chrome-coke.jpg",
     name: "Diet Coke Chrome",
     description: "Sleek almond nails featuring black and white checkerboard tips, silver metallic chrome details, and burgundy details",
-    price: 899,
+    price: 729,
     category: "Chrome & Mirror",
   },
   {
@@ -76,7 +76,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/jelly-droplet.jpg",
     name: "3D Pink Jelly Droplets",
     description: "Delicate pink jelly gradient nails with realistic 3D water droplets, a sculptured 3D pink flower, and tiny gold beads",
-    price: 1199,
+    price: 649,
     category: "3D Embellishments",
   },
   {
@@ -92,7 +92,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/burgundy-leaves.jpg",
     name: "Burgundy Leaves",
     description: "Elegant almond shaped nails colored in glossy deep burgundy wine red and light pink with hand-painted delicate red leaves",
-    price: 749,
+    price: 639,
     category: "Classic Glam",
   },
   {
@@ -100,7 +100,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/silver-chrome-bows.jpg",
     name: "Silver Chrome Bows",
     description: "Extremely premium silver cat-eye glitter base with handcrafted 3D gold frames, ribbons/bows, pearls, and gold leaf accents",
-    price: 999,
+    price: 679,
     category: "3D Embellishments",
   },
   {
@@ -109,7 +109,7 @@ export const galleryItems: NailDesign[] = [
     name: "Blue Floral Waves & Rhinestones",
     description: "Beautiful hand-painted blue flowers with blue/white striped accent nails, gold lining, and clusters of sparkling crystals",
     price: 799,
-    category: "Floral Dreams",
+    category: "Luxury Art",
   },
   {
     id: "red-glitter-hearts",
@@ -124,7 +124,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/indigo-mandala.jpg",
     name: "Indigo Traditional Mandala",
     description: "Dark indigo blue cat-eye base with intricate white mandala hand-painting, pearls, mirror attachments, and dangling chain connections",
-    price: 1099,
+    price: 999,
     category: "Luxury Art",
   },
   {
@@ -132,7 +132,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/grunge-8ball-stars.jpg",
     name: "Grunge Retro 8-Ball",
     description: "Cool stiletto/almond shape with zebra print French tips, polka dots, chrome 8-ball accent, purple velvet star, and metal spikes",
-    price: 899,
+    price: 729,
     category: "Minimal Art",
   },
   {
@@ -140,7 +140,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/chrome-wavy-lines.jpg",
     name: "Silver Chrome Wavy Lines",
     description: "Nude sheer almond gel base with elegant, hand-sculpted metallic silver wavy 3D lines.",
-    price: 699,
+    price: 549,
     category: "Chrome & Mirror",
   },
   {
@@ -148,15 +148,15 @@ export const galleryItems: NailDesign[] = [
     src: "/images/cat-eye-roses.jpg",
     name: "Cat-Eye Velvet Roses",
     description: "Luxurious pink magnetic cat-eye base featuring hand-painted detailed roses and golden borders.",
-    price: 899,
-    category: "Luxury Art",
+    price: 739,
+    category: "Chrome & Mirror",
   },
   {
     id: "pastel-vibe-playful",
     src: "/images/pastel-vibe-playful.jpg",
     name: "Pastel Vibe Playfuls",
     description: "Cute mix of hand-painted cherry prints, retro waves, delicate blue leaves, and star art.",
-    price: 649,
+    price: 679,
     category: "Minimal Art",
   },
   {
@@ -164,7 +164,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/holo-fantasy-butterfly.jpg",
     name: "Holo Fantasy Butterflies",
     description: "Extravagant set with butterfly wing structures, chrome borders, holographic shine, and pearls.",
-    price: 1199,
+    price: 779,
     category: "3D Embellishments",
   },
   {
@@ -172,7 +172,7 @@ export const galleryItems: NailDesign[] = [
     src: "/images/starry-aura-french.jpg",
     name: "Aura Star French Tips",
     description: "Chic soft blushing pink aura base accented with gold sunburst stars and gold chrome French tips.",
-    price: 999,
+    price: 629,
     category: "French Tips",
   },
 ]
@@ -351,11 +351,6 @@ export function GallerySection() {
                           </button>
                         </div>
                       </div>
-
-                      {/* Category Badge */}
-                      <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 text-foreground text-xs font-medium tracking-wider rounded-full shadow-sm">
-                        {item.category}
-                      </span>
                     </div>
 
                     {/* Info */}

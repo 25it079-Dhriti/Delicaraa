@@ -111,9 +111,6 @@ export default function DesignDetailPage() {
                   alt={design.name} 
                   className="w-full h-full object-cover"
                 />
-                <span className="absolute top-4 left-4 px-3.5 py-1 bg-white/95 text-foreground text-xs font-semibold tracking-wider rounded-full shadow-sm">
-                  {design.category}
-                </span>
               </div>
             </div>
 
