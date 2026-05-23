@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { X, Gift, Send, Copy, Check } from "lucide-react"
 
 export function PromoModal() {
